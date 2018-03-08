@@ -55,10 +55,36 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
     }
 
     cerr << "\t>>> Steps (type steps): " << steps << endl;
-    cerr << "\t>>> Returning empty curve." << endl;
 
-    // Right now this will just return this empty curve.
-    return Curve();
+	// preallocate curve with (|P|/4)*steps points
+	Curve C( (p.size()/4)*steps);
+
+	//TODO: do this for each 4 points successivly where last point is first point of next 
+	for (int i = 0; i < P.size() / 4; i ++) {
+		//TODO: bezier EQ ( 4 points )
+		// p = (1-t)^3 *P0 + 3*t*(1-t)^2*P1 + 3*t^2*(1-t)*P2 + t^3*P3 
+
+		double stepsize = 1 / (double) steps;
+		double t = 0;
+
+		for (int j = 0; j < steps; j++) {
+			// cubic bezier equation
+			Vector3f pp = pow((1 - t), 3)*P[i] + 3 * t*pow((1 - t), 2)*P[i + 1] + 3 *t*t*(1 - t)*P[i + 2] + pow(t, 3)*P[i + 3];
+			C[ i*steps + j ].V = pp;
+
+			// Tangent vector is first derivative
+			C[i*steps + j].T = Vector3f(0, 0, 0);
+			// Normal vector is second derivative
+			C[i*steps + j].N = Vector3f(0, 0, 0);
+			// Finally, binormal is facing up.
+			C[i*steps + j].B = Vector3f(0, 0, 1);
+            
+			t += stepsize;
+		}
+	}
+
+    return C;
+
 }
 
 Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
