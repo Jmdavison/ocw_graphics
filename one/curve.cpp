@@ -57,17 +57,17 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
     cerr << "\t>>> Steps (type steps): " << steps << endl;
 
 	// preallocate curve with (|P|/4)*steps points
-	Curve C( (p.size()/4)*steps);
+	Curve C((P.size()/4)*steps);
 
 	//TODO: do this for each 4 points successivly where last point is first point of next 
-	for (int i = 0; i < P.size() / 4; i ++) {
+	for (unsigned i = 0; i < P.size() / 4; i ++) {
 		//TODO: bezier EQ ( 4 points )
 		// p = (1-t)^3 *P0 + 3*t*(1-t)^2*P1 + 3*t^2*(1-t)*P2 + t^3*P3 
 
 		double stepsize = 1 / (double) steps;
 		double t = 0;
 
-		for (int j = 0; j < steps; j++) {
+		for (unsigned j = 0; j < steps; j++) {
 			// cubic bezier equation
 			Vector3f pp = pow((1 - t), 3)*P[i] + 3 * t*pow((1 - t), 2)*P[i + 1] + 3 *t*t*(1 - t)*P[i + 2] + pow(t, 3)*P[i + 3];
 			C[ i*steps + j ].V = pp;
@@ -110,10 +110,34 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
     }
 
     cerr << "\t>>> Steps (type steps): " << steps << endl;
-    cerr << "\t>>> Returning empty curve." << endl;
 
-    // Return an empty curve right now.
-    return Curve();
+    Matrix4f bezierBasis (
+        1, -3, 3, -1,
+        0, 3, -6,  3,
+        0, 0,  3, -3,
+        0, 0,  0,  1
+    );
+
+    Matrix4f bsplineBasis (
+        1/6.0f, -3/6.0f,  3/6.0f, -1/6.0f,
+        4/6.0f,       0, -6/6.0f,  3/6.0f,
+        1/6.0f,  3/6.0f,  3/6.0f, -3/6.0f, 
+             0,       0,       0,  1/6.0f
+    );
+
+    Matrix4f conversionMatrix = bsplineBasis * bezierBasis.inverse();
+    vector<Vector3f> newControlPoints;
+
+    for(unsigned i=0; i<P.size()/4; i++){
+        for(unsigned j=0; j < 4; j++) {
+            Vector3f newControlPoint(0.0f);
+            for(unsigned k=0; k < 4; k++) {
+                newControlPoint += conversionMatrix[(j*4) + k] * P[i+k];
+            }
+            newControlPoints.push_back(newControlPoint);
+        }
+    }
+return evalBezier(newControlPoints, steps);
 }
 
 Curve evalCircle( float radius, unsigned steps )
@@ -125,8 +149,7 @@ Curve evalCircle( float radius, unsigned steps )
     Curve R( steps+1 );
 
     // Fill it in counterclockwise
-    for( unsigned i = 0; i <= steps; ++i )
-    {
+    for( unsigned i = 0; i <= steps; ++i ) {
         // step from 0 to 2pi
         float t = 2.0f * M_PI * float( i ) / steps;
 
@@ -147,8 +170,7 @@ Curve evalCircle( float radius, unsigned steps )
     return R;
 }
 
-void drawCurve( const Curve& curve, float framesize )
-{
+void drawCurve( const Curve& curve, float framesize ) {
     // Save current state of OpenGL
     glPushAttrib( GL_ALL_ATTRIB_BITS );
 
