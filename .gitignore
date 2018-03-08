@@ -1,3 +1,4 @@
 *.o
 a1
 vecmath/lib
+.vscode

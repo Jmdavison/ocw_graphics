@@ -57,10 +57,10 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
     cerr << "\t>>> Steps (type steps): " << steps << endl;
 
 	// preallocate curve with (|P|/4)*steps points
-	Curve C((P.size()/4)*steps);
+	Curve C((P.size()/4) * steps);
 
 	//TODO: do this for each 4 points successivly where last point is first point of next 
-	for (unsigned i = 0; i < P.size() / 4; i ++) {
+	for (unsigned i = 0; i < P.size(); i += 4) {
 		//TODO: bezier EQ ( 4 points )
 		// p = (1-t)^3 *P0 + 3*t*(1-t)^2*P1 + 3*t^2*(1-t)*P2 + t^3*P3 
 
@@ -68,16 +68,21 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
 		double t = 0;
 
 		for (unsigned j = 0; j < steps; j++) {
+
+            CurvePoint cp;
 			// cubic bezier equation
 			Vector3f pp = pow((1 - t), 3)*P[i] + 3 * t*pow((1 - t), 2)*P[i + 1] + 3 *t*t*(1 - t)*P[i + 2] + pow(t, 3)*P[i + 3];
-			C[ i*steps + j ].V = pp;
+			cp.V = pp;
 
 			// Tangent vector is first derivative
-			C[i*steps + j].T = Vector3f(0, 0, 0);
+			cp.T = Vector3f(0, 0, 0);
 			// Normal vector is second derivative
-			C[i*steps + j].N = Vector3f(0, 0, 0);
+			cp.N = Vector3f(0, 0, 0);
 			// Finally, binormal is facing up.
-			C[i*steps + j].B = Vector3f(0, 0, 1);
+			cp.B = Vector3f(0, 0, 1);
+
+            // add point to end of curve
+            C.push_back(cp);
             
 			t += stepsize;
 		}
@@ -112,10 +117,10 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
     cerr << "\t>>> Steps (type steps): " << steps << endl;
 
     Matrix4f bezierBasis (
-        1, -3, 3, -1,
-        0, 3, -6,  3,
-        0, 0,  3, -3,
-        0, 0,  0,  1
+        1, -3,  3, -1,
+        0,  3, -6,  3,
+        0,  0,  3, -3,
+        0,  0,  0,  1
     );
 
     Matrix4f bsplineBasis (
@@ -125,19 +130,27 @@ Curve evalBspline( const vector< Vector3f >& P, unsigned steps )
              0,       0,       0,  1/6.0f
     );
 
+    // conversion matrix is B1 * B2^-1
     Matrix4f conversionMatrix = bsplineBasis * bezierBasis.inverse();
     vector<Vector3f> newControlPoints;
 
-    for(unsigned i=0; i<P.size()/4; i++){
+    for(unsigned i=0; i< P.size() - 3; i++) {
+        // for each row (create new control point)
         for(unsigned j=0; j < 4; j++) {
             Vector3f newControlPoint(0.0f);
+            // for each col
             for(unsigned k=0; k < 4; k++) {
                 newControlPoint += conversionMatrix[(j*4) + k] * P[i+k];
             }
             newControlPoints.push_back(newControlPoint);
         }
     }
-return evalBezier(newControlPoints, steps);
+
+    newControlPoints.pop_back();
+
+    cerr <<  "NUMBER OF CONTROL POINTS INTO BEZIER" << newControlPoints.size() << "\n\n";
+
+    return evalBezier(newControlPoints, steps);
 }
 
 Curve evalCircle( float radius, unsigned steps )
