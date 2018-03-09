@@ -59,6 +59,8 @@ Curve evalBezier( const vector< Vector3f >& P, unsigned steps )
 	// preallocate curve with (|P|/4)*steps points
 	Curve C((P.size()/4) * steps);
 
+    //changes
+
 	//TODO: do this for each 4 points successivly where last point is first point of next 
 	for (unsigned i = 0; i < P.size(); i += 4) {
 		//TODO: bezier EQ ( 4 points )
